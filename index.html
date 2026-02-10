@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>로또 번호 추천 (5게임 + 보너스) · 다크/화이트</title>
+  <title>로또 번호 추천 (3게임 + 보너스) · 다크/화이트</title>
 
   <style>
     /* =========================
@@ -385,7 +385,7 @@
     <header>
       <div>
         <h1>로또 번호 추천</h1>
-        <p class="sub">한 번에 5게임(각 6개 + 보너스 1개) · 다크/화이트 전환 · 반응형</p>
+        <p class="sub">한 번에 3게임(각 6개 + 보너스 1개) · 다크/화이트 전환 · 반응형</p>
       </div>
 
       <div class="header-actions">
@@ -401,9 +401,9 @@
       <div class="top">
         <div class="meta">
           <div class="pill" id="last">마지막 추천: -</div>
-          <div class="pill">5게임 × (6+보너스)</div>
+          <div class="pill">3게임 × (6+보너스)</div>
         </div>
-        <button class="btn" id="pickBtn" type="button">5게임 추천하기</button>
+        <button class="btn" id="pickBtn" type="button">3게임 추천하기</button>
       </div>
 
       <div class="stage">
@@ -561,12 +561,12 @@
     async function pickFiveGames(){
       pickBtn.disabled = true;
 
-      const games = Array.from({length:5}, () => pickOneGame());
+      const games = Array.from({length:3}, () => pickOneGame());
       renderGames(games);
 
       last.textContent = `마지막 추천: ${nowStamp()}`;
 
-      const totalBalls = 5 * 7; // 35개
+      const totalBalls = 3 * 7; // 21개
       const totalTime = 650 + (totalBalls - 1) * 90 + 250;
       await new Promise(r => setTimeout(r, totalTime));
 
