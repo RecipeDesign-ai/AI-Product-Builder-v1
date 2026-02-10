@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>로또 번호 추천 (5게임 + 보너스) · 다크/화이트</title>
+
+  <style>
+    /* =========================
+       THEME TOKENS
+       ========================= */
+    :root{
+      --bg: #0b1220;
+      --bg2: rgba(0,0,0,.26);
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.03);
+      --border: rgba(255,255,255,.12);
+      --border2: rgba(255,255,255,.10);
+      --text: #eaf0ff;
+      --muted:#a9b6d6;
+      --shadow: 0 18px 40px rgba(0,0,0,.35);
+
+      --btnText:#071023;
+      --btnGrad1:#7dd3ff;
+      --btnGrad2:#3b82f6;
+      --btnShadow: 0 10px 18px rgba(59,130,246,.35);
+
+      --hint: rgba(169,182,214,.95);
+    }
+
+    /* Light theme overrides */
+    [data-theme="light"]{
+      --bg: #f6f8ff;
+      --bg2: rgba(15, 23, 42, .06);
+      --card: rgba(255,255,255,.78);
+      --card2: rgba(255,255,255,.56);
+      --border: rgba(15,23,42,.10);
+      --border2: rgba(15,23,42,.10);
+      --text: #0b1220;
+      --muted:#46556f;
+      --shadow: 0 18px 40px rgba(2,6,23,.10);
+
+      --btnText:#071023;
+      --btnGrad1:#93c5fd;
+      --btnGrad2:#60a5fa;
+      --btnShadow: 0 10px 18px rgba(96,165,250,.25);
+
+      --hint: rgba(70,85,111,.95);
+    }
+
+    /* =========================
+       BASE
+       ========================= */
+    *{ box-sizing:border-box; }
+    html, body { height:100%; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Helvetica, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(86,155,255,.18), transparent 55%),
+        radial-gradient(900px 500px at 20% 10%, rgba(168,92,255,.14), transparent 60%),
+        radial-gradient(900px 500px at 80% 20%, rgba(0,255,187,.10), transparent 55%),
+        var(--bg);
+    }
+
+    .wrap{
+      width:min(1040px, 100%);
+      display:grid;
+      gap:14px;
+    }
+
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
+      padding:0 4px;
+      flex-wrap:wrap;
+    }
+    h1{ margin:0; font-size:clamp(22px, 3vw, 30px); letter-spacing:-0.02em; }
+    .sub{ margin:0; color:var(--muted); font-size:14px; }
+
+    .header-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .card{
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border-radius:18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .top{
+      padding:16px;
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .meta{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .pill{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border2);
+      background: rgba(255,255,255,.06);
+      white-space:nowrap;
+    }
+    [data-theme="light"] .pill{
+      background: rgba(2,6,23,.04);
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:14px;
+      padding:12px 16px;
+      font-weight:800;
+      color:var(--btnText);
+      background: linear-gradient(180deg, var(--btnGrad1), var(--btnGrad2));
+      box-shadow: var(--btnShadow);
+      transition: transform .12s ease, filter .12s ease, opacity .12s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn:hover{ transform: translateY(-1px); filter:saturate(1.1); }
+    .btn:active{ transform: translateY(1px) scale(.99); }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; transform:none; }
+
+    /* Theme toggle button - subtle */
+    .btn-ghost{
+      appearance:none;
+      border:1px solid var(--border2);
+      cursor:pointer;
+      border-radius:14px;
+      padding:10px 12px;
+      font-weight:800;
+      color:var(--text);
+      background: rgba(255,255,255,.05);
+      transition: transform .12s ease, background .12s ease, opacity .12s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn-ghost:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); }
+    .btn-ghost:active{ transform: translateY(1px) scale(.99); }
+    [data-theme="light"] .btn-ghost{
+      background: rgba(2,6,23,.03);
+    }
+    [data-theme="light"] .btn-ghost:hover{
+      background: rgba(2,6,23,.06);
+    }
+
+    .stage{
+      padding:16px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(0,0,0,.06), var(--bg2));
+      display:grid;
+      gap:12px;
+    }
+    [data-theme="light"] .stage{
+      border-top:1px solid rgba(15,23,42,.08);
+      background: linear-gradient(180deg, rgba(2,6,23,.02), rgba(2,6,23,.04));
+    }
+
+    .game{
+      border:1px solid var(--border2);
+      background: rgba(255,255,255,.03);
+      border-radius:16px;
+      overflow:hidden;
+    }
+    [data-theme="light"] .game{
+      background: rgba(2,6,23,.02);
+    }
+
+    .game-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      font-weight:800;
+      letter-spacing:-0.01em;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    [data-theme="light"] .game-head{
+      border-bottom:1px solid rgba(15,23,42,.08);
+    }
+    .game-head small{
+      font-weight:700;
+      color:var(--muted);
+    }
+
+    /* 7칸(6+보너스) */
+    .grid{
+      position:relative;
+      display:grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap:10px;
+      padding:14px 12px 16px;
+      align-items:end;
+      overflow:hidden;
+    }
+    .bonus-slot{
+      position:relative;
+    }
+    .bonus-slot::before{
+      content:"";
+      position:absolute;
+      left:-6px;
+      top:8px;
+      bottom:8px;
+      width:1px;
+      background: rgba(255,255,255,.12);
+    }
+    [data-theme="light"] .bonus-slot::before{
+      background: rgba(15,23,42,.14);
+    }
+
+    /* Ball */
+    .ball{
+      width:74px;
+      height:74px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      margin:0 auto;
+      position:relative;
+      box-shadow:
+        0 18px 26px rgba(0,0,0,.28),
+        inset -10px -12px 18px rgba(0,0,0,.18),
+        inset 10px 10px 16px rgba(255,255,255,.18);
+      opacity:0;
+      transform: translateY(-170px) scale(.9);
+      will-change: transform, opacity;
+    }
+    [data-theme="light"] .ball{
+      box-shadow:
+        0 14px 22px rgba(2,6,23,.18),
+        inset -10px -12px 18px rgba(2,6,23,.10),
+        inset 10px 10px 16px rgba(255,255,255,.35);
+    }
+
+    .ball .shine{
+      position:absolute;
+      top:12px; left:16px;
+      width:20px; height:14px;
+      border-radius:999px;
+      background: rgba(255,255,255,.60);
+      transform: rotate(-18deg);
+      opacity:.55;
+    }
+    .ball .inner{
+      width:46px; height:46px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #f1f5ff 60%, #e2e8ff 100%);
+      box-shadow:
+        inset 0 4px 8px rgba(0,0,0,.10),
+        0 6px 10px rgba(0,0,0,.16);
+      border:1px solid rgba(10,20,45,.10);
+    }
+    .ball .num{
+      font-weight:900;
+      font-size:18px;
+      color:#0b1220;
+      text-shadow: 0 1px 0 rgba(255,255,255,.65);
+    }
+    .tag{
+      position:absolute;
+      bottom:-10px;
+      left:50%;
+      transform: translateX(-50%);
+      padding:4px 8px;
+      font-size:11px;
+      font-weight:900;
+      border-radius:999px;
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.16);
+      color: rgba(234,240,255,.92);
+      letter-spacing:-0.01em;
+    }
+    [data-theme="light"] .tag{
+      background: rgba(2,6,23,.55);
+      border:1px solid rgba(255,255,255,.22);
+      color: rgba(255,255,255,.95);
+    }
+
+    @keyframes dropIn {
+      0%   { transform: translateY(-200px) scale(.86); opacity:0; }
+      40%  { opacity:1; }
+      70%  { transform: translateY(0px) scale(1.02); }
+      82%  { transform: translateY(-14px) scale(.99); }
+      92%  { transform: translateY(0px) scale(1.00); }
+      100% { transform: translateY(0px) scale(1.00); opacity:1; }
+    }
+    @keyframes floaty {
+      0%,100%{ transform: translateY(0px); }
+      50%{ transform: translateY(-3px); }
+    }
+    .ball.show{
+      animation: dropIn 650ms cubic-bezier(.2,.9,.25,1.15) var(--d, 0ms) both,
+                 floaty 1600ms ease-in-out calc(var(--d, 0ms) + 760ms) infinite;
+    }
+
+    .hint{
+      padding:14px 12px 2px;
+      color:var(--hint);
+      font-size:13px;
+      line-height:1.55;
+    }
+
+    /* =========================
+       RESPONSIVE
+       ========================= */
+    @media (max-width: 980px){
+      body{ padding:18px; }
+      .wrap{ width:min(920px, 100%); }
+      .ball{ width:70px; height:70px; }
+      .ball .inner{ width:44px; height:44px; }
+    }
+
+    /* tablet */
+    @media (max-width: 860px){
+      .grid{
+        grid-template-columns: repeat(4, minmax(0,1fr));
+      }
+      .bonus-slot::before{ display:none; }
+      .ball{ width:66px; height:66px; }
+      .ball .inner{ width:42px; height:42px; }
+      .game-head{ align-items:flex-start; }
+    }
+
+    /* mobile */
+    @media (max-width: 360px){
+      body{ padding:14px; }
+      .top{ padding:14px; }
+      .stage{ padding:30px; }
+      .grid{
+        grid-template-columns: repeat(3, minmax(0,1fr));
+        gap:10px;
+      }
+      .ball{ width:45px; height:45px; }
+      .ball .inner{ width:30px; height:30px; }
+      .ball .num{ font-size:12px; }
+      .btn{ width:100%; justify-content:center; }
+      .btn-ghost{ width:100%; justify-content:center; }
+      .header-actions{ width:100%; justify-content:flex-start; }
+      .pill{ font-size:12px; }
+    }
+
+    /* Accessibility: reduce motion */
+    @media (prefers-reduced-motion: reduce){
+      .ball.show{ animation: none !important; opacity:1 !important; transform:none !important; }
+      .btn, .btn-ghost{ transition:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>로또 번호 추천</h1>
+        <p class="sub">한 번에 5게임(각 6개 + 보너스 1개) · 다크/화이트 전환 · 반응형</p>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-ghost" id="themeBtn" type="button" aria-label="테마 전환">
+          <span id="themeIcon">🌙</span>
+          <span id="themeText">다크</span>
+        </button>
+        <div class="pill">🎯 1~45 (게임별 중복 없음)</div>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="top">
+        <div class="meta">
+          <div class="pill" id="last">마지막 추천: -</div>
+          <div class="pill">5게임 × (6+보너스)</div>
+        </div>
+        <button class="btn" id="pickBtn" type="button">5게임 추천하기</button>
+      </div>
+
+      <div class="stage">
+        <div class="hint">※ 각 게임은 1~45에서 <b>6개</b>를 뽑고, 남은 숫자 중 <b>보너스 1개</b>를 추가로 뽑습니다. (버튼 클릭 시 공이 순차적으로 떨어집니다)</div>
+        <div id="games"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // 에러가 나면 알림 (디버깅용)
+    window.addEventListener('error', (e) => {
+      alert('스크립트 오류: ' + (e.message || e.error));
+    });
+
+    const pickBtn = document.getElementById('pickBtn');
+    const last = document.getElementById('last');
+    const gamesWrap = document.getElementById('games');
+
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    function nowStamp(){
+      const d = new Date();
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    }
+
+    /* =========================
+       THEME: persist in localStorage
+       ========================= */
+    const THEME_KEY = 'lotto_theme';
+
+    function applyTheme(theme){
+      document.documentElement.setAttribute('data-theme', theme);
+      if(theme === 'light'){
+        themeIcon.textContent = '☀️';
+        themeText.textContent = '화이트';
+      }else{
+        themeIcon.textContent = '🌙';
+        themeText.textContent = '다크';
+      }
+    }
+
+    function getPreferredTheme(){
+      const saved = localStorage.getItem(THEME_KEY);
+      if(saved === 'light' || saved === 'dark') return saved;
+      // system preference fallback
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      return prefersLight ? 'light' : 'dark';
+    }
+
+    let currentTheme = getPreferredTheme();
+    applyTheme(currentTheme);
+
+    themeBtn.addEventListener('click', () => {
+      currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, currentTheme);
+      applyTheme(currentTheme);
+    });
+
+    /* =========================
+       LOTTO LOGIC
+       ========================= */
+    function pickOneGame(){
+      const picked = new Set();
+      while(picked.size < 6){
+        picked.add(Math.floor(Math.random() * 45) + 1);
+      }
+      const main = Array.from(picked).sort((a,b)=>a-b);
+
+      let bonus;
+      do {
+        bonus = Math.floor(Math.random() * 45) + 1;
+      } while (picked.has(bonus));
+
+      return { main, bonus };
+    }
+
+    function ballColor(num){
+      if (num <= 10) return { base:'#fbbf24', glow:'rgba(251,191,36,.45)'}; // 노랑
+      if (num <= 20) return { base:'#60a5fa', glow:'rgba(96,165,250,.45)'};  // 파랑
+      if (num <= 30) return { base:'#f87171', glow:'rgba(248,113,113,.45)'}; // 빨강
+      if (num <= 40) return { base:'#34d399', glow:'rgba(52,211,153,.45)'};  // 초록
+      return { base:'#a78bfa', glow:'rgba(167,139,250,.45)'};               // 보라
+    }
+
+    function createBall(num, delayMs, isBonus=false){
+      const { base, glow } = ballColor(num);
+
+      const ball = document.createElement('div');
+      ball.className = 'ball';
+      ball.style.background = `radial-gradient(circle at 28% 28%, rgba(255,255,255,.35), ${base} 45%, rgba(0,0,0,.12) 100%)`;
+      ball.style.filter = `drop-shadow(0 0 18px ${glow})`;
+      ball.style.setProperty('--d', `${delayMs}ms`);
+
+      const shine = document.createElement('div');
+      shine.className = 'shine';
+
+      const inner = document.createElement('div');
+      inner.className = 'inner';
+
+      const numEl = document.createElement('div');
+      numEl.className = 'num';
+      numEl.textContent = num;
+
+      inner.appendChild(numEl);
+      ball.appendChild(shine);
+      ball.appendChild(inner);
+
+      if(isBonus){
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.textContent = 'BONUS';
+        ball.appendChild(tag);
+      }
+
+      requestAnimationFrame(() => ball.classList.add('show'));
+      return ball;
+    }
+
+    function renderGames(games){
+      gamesWrap.innerHTML = '';
+
+      games.forEach((g, idx) => {
+        const game = document.createElement('div');
+        game.className = 'game';
+
+        const head = document.createElement('div');
+        head.className = 'game-head';
+        head.innerHTML = `GAME ${idx+1} <small>${g.main.join(', ')} + [${g.bonus}]</small>`;
+
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+
+        g.main.forEach((n, i) => {
+          const delay = (idx * 7 + i) * 90; // ms
+          grid.appendChild(createBall(n, delay, false));
+        });
+
+        const bonusSlot = document.createElement('div');
+        bonusSlot.className = 'bonus-slot';
+
+        const bonusDelay = (idx * 7 + 6) * 90;
+        bonusSlot.appendChild(createBall(g.bonus, bonusDelay, true));
+        grid.appendChild(bonusSlot);
+
+        game.appendChild(head);
+        game.appendChild(grid);
+        gamesWrap.appendChild(game);
+      });
+    }
+
+    async function pickFiveGames(){
+      pickBtn.disabled = true;
+
+      const games = Array.from({length:5}, () => pickOneGame());
+      renderGames(games);
+
+      last.textContent = `마지막 추천: ${nowStamp()}`;
+
+      const totalBalls = 5 * 7; // 35개
+      const totalTime = 650 + (totalBalls - 1) * 90 + 250;
+      await new Promise(r => setTimeout(r, totalTime));
+
+      pickBtn.disabled = false;
+    }
+
+    pickBtn.addEventListener('click', pickFiveGames);
+
+    // 첫 화면: 버튼 누르기 전에는 예시를 넣지 않고 깔끔하게 시작
+    // 원하면 아래 한 줄로 최초 자동 추천:
+    // pickFiveGames();
+  </script>
+</body>
+</html>
