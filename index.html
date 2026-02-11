@@ -240,6 +240,54 @@
     }
 
     /* =========================
+       FORM STYLES
+       ========================= */
+    .form-grid{
+      display:grid;
+      gap: 16px;
+    }
+    .form-group{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .form-group label{
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .form-group input,
+    .form-group textarea{
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background-color: var(--bg2);
+      color: var(--text);
+      font-size: 16px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus{
+      outline: none;
+      border-color: var(--btnGrad2);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, .25);
+    }
+    .form-group textarea{
+      resize: vertical;
+    }
+    .form-group .btn{
+      width:100%;
+      justify-content:center;
+    }
+    h2{
+      margin:0;
+      font-size:clamp(20px, 2.5vw, 26px);
+      letter-spacing:-0.02em;
+    }
+
+
+    /* =========================
        RESPONSIVE
        ========================= */
     @media (max-width: 980px){
@@ -315,6 +363,31 @@
       <div class="stage">
 
         <div id="games"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="top">
+        <h2>제휴 문의</h2>
+      </div>
+      <div class="stage">
+        <form action="https://formspree.io/f/mykdknrb" method="POST" class="form-grid">
+          <div class="form-group">
+            <label for="name">이름</label>
+            <input type="text" id="name" name="name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">이메일</label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="message">내용</label>
+            <textarea id="message" name="message" rows="4" required></textarea>
+          </div>
+          <div class="form-group">
+            <button type="submit" class="btn">보내기</button>
+          </div>
+        </form>
       </div>
     </section>
   </div>
