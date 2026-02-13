@@ -2,507 +2,686 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>저녁 메뉴 추천 · 다크/화이트</title>
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Creator Toy AI — MVP (Teachable Machine)</title>
   <style>
-    /* =========================
-       THEME TOKENS
-       ========================= */
     :root{
-      --bg: #0b1220;
-      --bg2: rgba(0,0,0,.26);
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(255,255,255,.03);
-      --border: rgba(255,255,255,.12);
-      --border2: rgba(255,255,255,.10);
-      --text: #eaf0ff;
-      --muted:#a9b6d6;
-      --shadow: 0 18px 40px rgba(0,0,0,.35);
-
-      --btnText:#071023;
-      --btnGrad1:#7dd3ff;
-      --btnGrad2:#3b82f6;
-      --btnShadow: 0 10px 18px rgba(59,130,246,.35);
-
-      --hint: rgba(169,182,214,.95);
+      --bg:#0b1020; --card:#131a33; --text:#e8ecff; --muted:#aab4e6;
+      --line:rgba(255,255,255,.10); --accent:rgba(90,110,255,.65);
     }
-
-    /* Light theme overrides */
-    [data-theme="light"]{
-      --bg: #f6f8ff;
-      --bg2: rgba(15, 23, 42, .06);
-      --card: rgba(255,255,255,.78);
-      --card2: rgba(255,255,255,.56);
-      --border: rgba(15,23,42,.10);
-      --border2: rgba(15,23,42,.10);
-      --text: #0b1220;
-      --muted:#46556f;
-      --shadow: 0 18px 40px rgba(2,6,23,.10);
-
-      --btnText:#071023;
-      --btnGrad1:#93c5fd;
-      --btnGrad2:#60a5fa;
-      --btnShadow: 0 10px 18px rgba(96,165,250,.25);
-
-      --hint: rgba(70,85,111,.95);
-    }
-
-    /* =========================
-       BASE
-       ========================= */
     *{ box-sizing:border-box; }
-    html, body { height:100%; }
     body{
       margin:0;
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Helvetica, Arial;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
+      background: radial-gradient(1200px 600px at 20% 0%, #1b2452 0%, var(--bg) 60%);
       color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 50% -10%, rgba(86,155,255,.18), transparent 55%),
-        radial-gradient(900px 500px at 20% 10%, rgba(168,92,255,.14), transparent 60%),
-        radial-gradient(900px 500px at 80% 20%, rgba(0,255,187,.10), transparent 55%),
-        var(--bg);
     }
-
-    .wrap{
-      width:min(1040px, 100%);
-      display:grid;
-      gap:14px;
-    }
-
     header{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      gap:12px;
-      padding:0 4px;
-      flex-wrap:wrap;
+      padding:18px 16px;
+      border-bottom:1px solid var(--line);
+      position:sticky; top:0;
+      background: rgba(11,16,32,.75);
+      backdrop-filter: blur(10px);
+      z-index: 10;
     }
-    h1{ margin:0; font-size:clamp(22px, 3vw, 30px); letter-spacing:-0.02em; }
-    .sub{ margin:0; color:var(--muted); font-size:14px; }
+    header .row{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      max-width:1200px; margin:0 auto;
+    }
+    h1{ font-size:16px; margin:0; letter-spacing:.2px; }
+    .pill{
+      font-size:12px; color:var(--muted);
+      padding:6px 10px; border:1px solid var(--line); border-radius:999px;
+    }
 
-    .header-actions{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+    main{
+      max-width:1200px; margin:0 auto; padding:16px;
+      display:grid; grid-template-columns: 420px 1fr; gap:16px;
     }
+    @media (max-width:980px){ main{ grid-template-columns:1fr; } }
 
     .card{
-      border:1px solid var(--border);
-      background: linear-gradient(180deg, var(--card), var(--card2));
-      border-radius:18px;
-      box-shadow: var(--shadow);
-      overflow:hidden;
+      background: rgba(19,26,51,.85);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
     }
-
-    .top{
-      padding:16px;
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .meta{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      color:var(--muted);
-      font-size:13px;
-    }
-    .pill{
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid var(--border2);
-      background: rgba(255,255,255,.06);
-      white-space:nowrap;
-    }
-    [data-theme="light"] .pill{
-      background: rgba(2,6,23,.04);
-    }
-
-    .btn{
-      appearance:none;
-      border:none;
-      cursor:pointer;
-      border-radius:14px;
-      padding:12px 16px;
-      font-weight:800;
-      color:var(--btnText);
-      background: linear-gradient(180deg, var(--btnGrad1), var(--btnGrad2));
-      box-shadow: var(--btnShadow);
-      transition: transform .12s ease, filter .12s ease, opacity .12s ease;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-    }
-    .btn:hover{ transform: translateY(-1px); filter:saturate(1.1); }
-    .btn:active{ transform: translateY(1px) scale(.99); }
-    .btn[disabled]{ opacity:.55; cursor:not-allowed; transform:none; }
-
-    /* Theme toggle button - subtle */
-    .btn-ghost{
-      appearance:none;
-      border:1px solid var(--border2);
-      cursor:pointer;
-      border-radius:14px;
-      padding:10px 12px;
-      font-weight:800;
+    .card h2{ font-size:14px; margin:0 0 10px; color:#f0f3ff; }
+    .sub{ font-size:12px; color:var(--muted); margin:6px 0 0; line-height:1.5; }
+    label{ font-size:12px; color:var(--muted); display:block; margin:10px 0 6px; }
+    input[type="text"], input[type="number"], textarea{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.22);
       color:var(--text);
-      background: rgba(255,255,255,.05);
-      transition: transform .12s ease, background .12s ease, opacity .12s ease;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
+      outline:none;
     }
-    .btn-ghost:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); }
-    .btn-ghost:active{ transform: translateY(1px) scale(.99); }
-    [data-theme="light"] .btn-ghost{
-      background: rgba(2,6,23,.03);
-    }
-    [data-theme="light"] .btn-ghost:hover{
-      background: rgba(2,6,23,.06);
-    }
-
-    .stage{
-      padding:16px;
-      border-top:1px solid rgba(255,255,255,.08);
-      background: linear-gradient(180deg, rgba(0,0,0,.06), var(--bg2));
-      display:grid;
-      gap:12px;
-    }
-    [data-theme="light"] .stage{
-      border-top:1px solid rgba(15,23,42,.08);
-      background: linear-gradient(180deg, rgba(2,6,23,.02), rgba(2,6,23,.04));
-    }
-
-    .game{
-      border:1px solid var(--border2);
-      background: rgba(255,255,255,.03);
-      border-radius:16px;
-      overflow:hidden;
-    }
-    [data-theme="light"] .game{
-      background: rgba(2,6,23,.02);
-    }
-
-    .game-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+    textarea{ min-height:92px; resize:vertical; }
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .btns{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    button{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
       padding:10px 12px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      font-weight:800;
-      letter-spacing:-0.01em;
-      gap:10px;
-      flex-wrap:wrap;
+      border-radius:12px;
+      cursor:pointer;
     }
-    [data-theme="light"] .game-head{
-      border-bottom:1px solid rgba(15,23,42,.08);
-    }
-    .game-head small{
-      font-weight:700;
-      color:var(--muted);
-    }
+    button.primary{ background: rgba(90,110,255,.22); border-color: rgba(90,110,255,.35); }
+    button.danger { background: rgba(255,80,80,.15); border-color: rgba(255,80,80,.25); }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
 
-    /* =========================
-       MENU DISPLAY
-       ========================= */
-    .menu-item{
-      border:1px solid var(--border2);
-      background: rgba(255,255,255,.03);
-      border-radius:16px;
-      padding:16px;
-      font-size:20px;
-      font-weight:700;
-      text-align:center;
+    .rowline{
+      display:flex; gap:10px; align-items:flex-start; justify-content:space-between;
+      border-top:1px dashed var(--line);
+      padding-top:10px; margin-top:10px;
+    }
+    .tiny{ font-size:11px; color:var(--muted); }
+    #status{ margin-top:4px; }
+    #lastTrigger{ margin-top:4px; text-align:right; }
+
+    /* Webcam preview (canvas appended) */
+    .camWrap{
+      margin-top:12px;
+      border-radius:14px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.25);
+      aspect-ratio: 4 / 3;
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height:80px;
-      transition: all .2s ease;
-      cursor:pointer;
+      position: relative;
     }
-    .menu-item:hover{
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,.1);
-    }
-    [data-theme="light"] .menu-item{
-      background: rgba(2,6,23,.02);
+    #webcamCanvas{
+      max-width:100%;
+      max-height:100%;
+      width:auto;
+      height:auto;
+      display:block;
+      transform-origin:center;
     }
 
-    /* =========================
-       FORM STYLES
-       ========================= */
-    .form-grid{
-      display:grid;
-      gap: 16px;
+    /* Prediction bars */
+    #labelBox{ margin-top:10px; display:grid; gap:8px; }
+    .bar{
+      display:grid; grid-template-columns: 92px 1fr 44px;
+      gap:10px; align-items:center;
     }
-    .form-group{
-      display:flex;
-      flex-direction:column;
-      gap: 8px;
+    .bar .k{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .meter{
+      height:10px; border-radius:999px;
+      background: rgba(255,255,255,.10);
+      overflow:hidden;
+      border:1px solid var(--line);
     }
-    .form-group label{
-      font-weight: 600;
-      font-size: 14px;
+    .fill{ height:100%; width:0%; background: var(--accent); }
+    .bar .v{ font-size:12px; text-align:right; color: rgba(232,236,255,.9); }
+
+    /* Stage */
+    .stage{
+      position:relative;
+      overflow:hidden;
+      border-radius:18px;
+      border:1px solid var(--line);
+      min-height:560px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.12));
+    }
+    .scene{
+      position:absolute; inset:0;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:20px; text-align:center;
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .scene.hidden{ opacity:0; pointer-events:none; transform: scale(.98); }
+    .title{ font-size:28px; margin:0 0 10px; }
+    .desc{ font-size:15px; color: rgba(232,236,255,.86); line-height:1.6; max-width:560px; }
+    .badge{
+      margin-top:12px;
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      font-size:12px;
       color: var(--muted);
     }
-    .form-group input,
-    .form-group textarea{
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background-color: var(--bg2);
+
+    /* Simple particle / sticker effect (no image assets) */
+    .spark{
+      position:absolute;
+      width:10px; height:10px;
+      border-radius:50%;
+      background: rgba(255,255,255,.92);
+      animation: float 900ms ease-out forwards;
+      pointer-events:none;
+    }
+    @keyframes float{
+      from{ transform: translateY(0) scale(1); opacity:1; }
+      to{ transform: translateY(-80px) scale(0.2); opacity:0; }
+    }
+    .sticker{
+      position:absolute;
+      font-size: 42px;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.25));
+      animation: pop 650ms ease-out forwards;
+      pointer-events:none;
+    }
+    @keyframes pop{
+      from{ transform: translateY(12px) scale(.75); opacity:0; }
+      to{ transform: translateY(0) scale(1); opacity:1; }
+    }
+
+    .toast{
+      position:fixed; right:16px; bottom:16px;
+      background: rgba(0,0,0,.55);
+      border:1px solid var(--line);
+      padding:10px 12px;
+      border-radius:12px;
       color: var(--text);
-      font-size: 16px;
-      transition: border-color .2s, box-shadow .2s;
+      font-size:12px;
+      opacity:0;
+      transform: translateY(10px);
+      transition: .25s ease;
+      z-index: 20;
+      max-width: min(520px, calc(100vw - 32px));
     }
-    .form-group input:focus,
-    .form-group textarea:focus{
-      outline: none;
-      border-color: var(--btnGrad2);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, .25);
-    }
-    .form-group textarea{
-      resize: vertical;
-    }
-    .form-group .btn{
-      width:100%;
-      justify-content:center;
-    }
-    h2{
-      margin:0;
-      font-size:clamp(20px, 2.5vw, 26px);
-      letter-spacing:-0.02em;
-    }
-
-
-    /* =========================
-       RESPONSIVE
-       ========================= */
-    @media (max-width: 980px){
-      body{ padding:18px; }
-      .wrap{ width:min(920px, 100%); }
-      .ball{ width:70px; height:70px; }
-      .ball .inner{ width:44px; height:44px; }
-    }
-
-    /* tablet */
-    @media (max-width: 860px){
-      .grid{
-        grid-template-columns: repeat(4, minmax(0,1fr));
-      }
-      .bonus-slot::before{ display:none; }
-      .ball{ width:66px; height:66px; }
-      .ball .inner{ width:42px; height:42px; }
-      .game-head{ align-items:flex-start; }
-    }
-
-    /* mobile */
-    @media (max-width: 360px){
-      body{ padding:14px; }
-      .top{ padding:14px; }
-      .stage{ padding:30px; }
-      .grid{
-        grid-template-columns: repeat(3, minmax(0,1fr));
-        gap:10px;
-      }
-      .ball{ width:45px; height:45px; }
-      .ball .inner{ width:30px; height:30px; }
-      .ball .num{ font-size:12px; }
-      .btn{ width:100%; justify-content:center; }
-      .btn-ghost{ width:100%; justify-content:center; }
-      .header-actions{ width:100%; justify-content:flex-start; }
-      .pill{ font-size:12px; }
-    }
-
-    /* Accessibility: reduce motion */
-    @media (prefers-reduced-motion: reduce){
-      .ball.show{ animation: none !important; opacity:1 !important; transform:none !important; }
-      .btn, .btn-ghost{ transition:none; }
+    .toast.show{ opacity:1; transform: translateY(0); }
+    code.inline{
+      background: rgba(0,0,0,.25);
+      border:1px solid var(--line);
+      padding:2px 6px;
+      border-radius:8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
     }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>저녁 메뉴 추천</h1>
-        <p class="sub">오늘 저녁 뭐 먹을지 고민될 때! · 다크/화이트 전환 · 반응형</p>
-      </div>
-
-      <div class="header-actions">
-        <button class="btn-ghost" id="themeBtn" type="button" aria-label="테마 전환">
-          <span id="themeIcon">🌙</span>
-          <span id="themeText">다크</span>
-        </button>
-
-      </div>
-    </header>
-
-    <section class="card">
-      <div class="top">
-        <div class="meta">
-          <div class="pill" id="last">마지막 추천 시간: -</div>
-
-        </div>
-        <button class="btn" id="pickBtn" type="button">메뉴 추천받기</button>
-      </div>
-
-      <div class="stage">
-
-        <div id="games"></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="top">
-        <h2>제휴 문의</h2>
-      </div>
-      <div class="stage">
-        <form action="https://formspree.io/f/mykdknrb" method="POST" class="form-grid">
-          <div class="form-group">
-            <label for="name">이름</label>
-            <input type="text" id="name" name="name" required>
-          </div>
-          <div class="form-group">
-            <label for="email">이메일</label>
-            <input type="email" id="email" name="email" required>
-          </div>
-          <div class="form-group">
-            <label for="message">내용</label>
-            <textarea id="message" name="message" rows="4" required></textarea>
-          </div>
-          <div class="form-group">
-            <button type="submit" class="btn">보내기</button>
-          </div>
-        </form>
-      </div>
-    </section>
+<header>
+  <div class="row">
+    <h1>Creator Toy AI — MVP</h1>
+    <div class="pill">Teachable Machine × 인터랙티브 스토리</div>
   </div>
+</header>
 
+<main>
+  <!-- Left: Builder / Controls -->
   <section class="card">
-    <div class="top">
-      <h2>댓글</h2>
+    <h2>1) 모델 연결</h2>
+
+    <label>Teachable Machine 모델 URL (마지막 슬래시까지 포함)</label>
+    <input id="modelBaseUrl" type="text"
+      placeholder="예) https://teachablemachine.withgoogle.com/models/XXXXXXX/" />
+
+    <div class="grid2">
+      <div>
+        <label>예측 임계치(threshold)</label>
+        <input id="threshold" type="number" min="0" max="1" step="0.01" value="0.85" />
+      </div>
+      <div>
+        <label>쿨다운(ms) (연속 트리거 방지)</label>
+        <input id="cooldown" type="number" min="0" step="50" value="900" />
+      </div>
     </div>
-    <div class="stage">
-      <div id="disqus_thread"></div>
+
+    <div class="btns">
+      <button id="btnInit" class="primary">웹캠 시작 + 모델 로드</button>
+      <button id="btnStop" class="danger" disabled>중지</button>
     </div>
+
+    <p class="sub">
+      ⚠️ 카메라는 브라우저 정책상 <b>HTTPS</b> 또는 <b>localhost</b>에서만 허용됩니다.<br/>
+      (파일을 더블클릭으로 열면 카메라가 차단될 수 있어요)
+    </p>
+
+    <div class="rowline">
+      <div>
+        <div class="tiny">상태</div>
+        <div id="status">대기 중</div>
+      </div>
+      <div>
+        <div class="tiny">마지막 트리거</div>
+        <div id="lastTrigger">-</div>
+      </div>
+    </div>
+
+    <div class="camWrap" id="camWrap">
+      <!-- webcam.canvas 가 여기에 붙습니다 -->
+    </div>
+
+    <div id="labelBox"></div>
+
+    <hr style="border:none;border-top:1px solid var(--line); margin:14px 0;" />
+
+    <h2>2) 스토리 템플릿(반응형)</h2>
+    <p class="sub">
+      모델 라벨(클래스 이름)이 곧 트리거입니다. 예: <code class="inline">cat</code>, <code class="inline">clap</code>, <code class="inline">magic</code>
+    </p>
+
+    <label>트리거 → 액션 매핑(JSON)</label>
+    <textarea id="mapping" spellcheck="false"></textarea>
+
+    <div class="btns">
+      <button id="btnApply" class="primary">매핑 적용</button>
+      <button id="btnReset">기본 매핑</button>
+    </div>
+
+    <h2 style="margin-top:14px;">3) 공유 링크</h2>
+    <div class="btns">
+      <button id="btnShare" class="primary">설정 포함 공유 링크 만들기</button>
+      <button id="btnCopy">링크 복사</button>
+    </div>
+    <p class="sub" id="shareOut" style="word-break: break-all;"></p>
   </section>
 
-  <script>
-    window.addEventListener('error', (e) => {
-      alert('스크립트 오류: ' + (e.message || e.error));
-    });
+  <!-- Right: Stage -->
+  <section class="card">
+    <h2>Stage (체험 화면)</h2>
 
-    const pickBtn = document.getElementById('pickBtn');
-    const last = document.getElementById('last');
-    const gamesWrap = document.getElementById('games'); // Renaming to menuWrap mentally
+    <div class="stage" id="stage">
+      <div class="scene" id="scene-0">
+        <h3 class="title">안녕! 👋</h3>
+        <p class="desc">
+          웹캠을 켜고, 트리거를 인식하면 스토리가 반응해요.<br/>
+          기본 매핑: <code class="inline">cat</code> → 장면1, <code class="inline">magic</code> → 이펙트, <code class="inline">clap</code> → 다음 장면
+        </p>
+        <div class="badge">팁: 라벨을 짧고 단순하게 만들수록 좋아요</div>
+      </div>
 
-    const themeBtn = document.getElementById('themeBtn');
-    const themeIcon = document.getElementById('themeIcon');
-    const themeText = document.getElementById('themeText');
+      <div class="scene hidden" id="scene-1">
+        <h3 class="title">고양이가 나타났다 🐱</h3>
+        <p class="desc">
+          고양이를 인식했어요! 이제 <code class="inline">magic</code> 트리거로 마법을 발동해보세요.
+        </p>
+        <div class="badge">트리거: <b>cat</b> → 장면 이동</div>
+      </div>
 
-    function pad2(n){ return String(n).padStart(2,'0'); }
-    function nowStamp(){
-      const d = new Date();
-      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+      <div class="scene hidden" id="scene-2">
+        <h3 class="title">마법 발동! ✨</h3>
+        <p class="desc">
+          화면을 클릭/터치해도 이펙트가 나와요. 또는 <code class="inline">clap</code> 트리거로 다음으로!
+        </p>
+        <div class="badge">트리거: <b>magic</b> → 이펙트</div>
+      </div>
+
+      <div class="scene hidden" id="scene-3">
+        <h3 class="title">피날레 🎉</h3>
+        <p class="desc">
+          MVP 완성! 이제 장면/텍스트/스티커를 바꾸면 웹툰·동화·전시 체험으로 확장 가능합니다.
+        </p>
+        <div class="badge">트리거: <b>clap</b> → 장면 이동</div>
+      </div>
+    </div>
+
+    <p class="sub" style="margin-top:10px;">
+      다음 단계 아이디어: (1) 포토부스(스티커 오버레이), (2) 미니게임(점수/타이머), (3) 사운드 모델 병행
+    </p>
+  </section>
+</main>
+
+<div class="toast" id="toast">완료</div>
+
+<!-- Teachable Machine Image library -->
+<script src="https://cdn.jsdelivr.net/npm/ @teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+
+  const ui = {
+    modelBaseUrl: el("modelBaseUrl"),
+    threshold: el("threshold"),
+    cooldown: el("cooldown"),
+    btnInit: el("btnInit"),
+    btnStop: el("btnStop"),
+    btnApply: el("btnApply"),
+    btnReset: el("btnReset"),
+    btnShare: el("btnShare"),
+    btnCopy: el("btnCopy"),
+    mapping: el("mapping"),
+    status: el("status"),
+    lastTrigger: el("lastTrigger"),
+    labelBox: el("labelBox"),
+    shareOut: el("shareOut"),
+    toast: el("toast"),
+    camWrap: el("camWrap"),
+    stage: el("stage"),
+  };
+
+  // ---- Default mapping (MVP) ----
+  const DEFAULT_MAPPING = {
+    "cat":   { "type": "gotoScene", "scene": 1 },
+    "magic": { "type": "sparkle", "intensity": 18, "sticker": "✨" },
+    "clap":  { "type": "nextScene" }
+  };
+
+  // ---- Runtime state ----
+  let model = null;
+  let webcam = null;           // tmImage.Webcam instance
+  let maxPredictions = 0;
+  let rafId = null;
+
+  let mapping = structuredClone(DEFAULT_MAPPING);
+  let lastFireAt = 0;
+  let currentScene = 0;
+
+  // ---- UI helpers ----
+  function toast(msg="완료") {
+    ui.toast.textContent = msg;
+    ui.toast.classList.add("show");
+    setTimeout(() => ui.toast.classList.remove("show"), 900);
+  }
+  function setStatus(text) { ui.status.textContent = text; }
+
+  function scenesCount() {
+    return ui.stage.querySelectorAll(".scene").length;
+  }
+  function showScene(index) {
+    const scenes = ui.stage.querySelectorAll(".scene");
+    const clamped = Math.max(0, Math.min(index, scenes.length - 1));
+    scenes.forEach((s, i) => s.classList.toggle("hidden", i !== clamped));
+    currentScene = clamped;
+  }
+  function nextScene() {
+    showScene(currentScene + 1);
+  }
+
+  // ---- Effects (no assets) ----
+  function sparkle(intensity = 12) {
+    const rect = ui.stage.getBoundingClientRect();
+    for (let i=0; i<intensity; i++) {
+      const p = document.createElement("div");
+      p.className = "spark";
+      p.style.left = (Math.random() * rect.width) + "px";
+      p.style.top  = (rect.height * (0.55 + Math.random()*0.25)) + "px";
+      p.style.opacity = (0.5 + Math.random()*0.5).toFixed(2);
+      ui.stage.appendChild(p);
+      setTimeout(() => p.remove(), 950);
+    }
+  }
+
+  function sticker(emoji = "✨") {
+    const rect = ui.stage.getBoundingClientRect();
+    const s = document.createElement("div");
+    s.className = "sticker";
+    s.textContent = emoji;
+    s.style.left = (rect.width * (0.2 + Math.random()*0.6)) + "px";
+    s.style.top  = (rect.height * (0.25 + Math.random()*0.35)) + "px";
+    ui.stage.appendChild(s);
+    setTimeout(() => s.remove(), 900);
+  }
+
+  // ---- Mapping UI ----
+  function loadMappingToTextarea() {
+    ui.mapping.value = JSON.stringify(mapping, null, 2);
+  }
+  function applyMappingFromTextarea() {
+    try {
+      const obj = JSON.parse(ui.mapping.value);
+      if (!obj || typeof obj !== "object") throw new Error("JSON 객체가 아닙니다.");
+      mapping = obj;
+      toast("매핑 적용됨");
+    } catch (e) {
+      alert("매핑 JSON 파싱 실패: " + e.message);
+    }
+  }
+  ui.btnApply.addEventListener("click", applyMappingFromTextarea);
+  ui.btnReset.addEventListener("click", () => {
+    mapping = structuredClone(DEFAULT_MAPPING);
+    loadMappingToTextarea();
+    toast("기본 매핑 복원");
+  });
+
+  // ---- Share / Restore (cfg param) ----
+  function encodeConfig(cfg) {
+    // Unicode-safe base64
+    const json = JSON.stringify(cfg);
+    const bytes = new TextEncoder().encode(json);
+    let bin = "";
+    bytes.forEach(b => bin += String.fromCharCode(b));
+    return btoa(bin);
+  }
+  function decodeConfig(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array([...bin].map(ch => ch.charCodeAt(0)));
+    const json = new TextDecoder().decode(bytes);
+    return JSON.parse(json);
+  }
+
+  function buildShareLink() {
+    const cfg = {
+      modelBaseUrl: ui.modelBaseUrl.value.trim(),
+      threshold: parseFloat(ui.threshold.value || "0.85"),
+      cooldown: parseInt(ui.cooldown.value || "900", 10),
+      mapping
+    };
+    const packed = encodeConfig(cfg);
+    const url = new URL(window.location.href);
+    url.searchParams.set("cfg", packed);
+    return url.toString();
+  }
+
+  ui.btnShare.addEventListener("click", () => {
+    const link = buildShareLink();
+    ui.shareOut.textContent = link;
+    toast("링크 생성됨");
+  });
+
+  ui.btnCopy.addEventListener("click", async () => {
+    const link = ui.shareOut.textContent || buildShareLink();
+    try {
+      await navigator.clipboard.writeText(link);
+      ui.shareOut.textContent = link;
+      toast("복사됨");
+    } catch {
+      prompt("자동 복사 실패. 아래 링크를 수동 복사하세요.", link);
+    }
+  });
+
+  function restoreFromUrlIfAny() {
+    const url = new URL(window.location.href);
+    const cfgB64 = url.searchParams.get("cfg");
+    if (!cfgB64) {
+      mapping = structuredClone(DEFAULT_MAPPING);
+      loadMappingToTextarea();
+      return;
+    }
+    try {
+      const cfg = decodeConfig(cfgB64);
+      if (cfg.modelBaseUrl) ui.modelBaseUrl.value = cfg.modelBaseUrl;
+      if (typeof cfg.threshold === "number") ui.threshold.value = String(cfg.threshold);
+      if (typeof cfg.cooldown === "number") ui.cooldown.value = String(cfg.cooldown);
+      if (cfg.mapping && typeof cfg.mapping === "object") mapping = cfg.mapping;
+      loadMappingToTextarea();
+      ui.shareOut.textContent = window.location.href;
+      toast("설정 복원됨");
+    } catch (e) {
+      console.warn(e);
+      mapping = structuredClone(DEFAULT_MAPPING);
+      loadMappingToTextarea();
+    }
+  }
+
+  // ---- Teachable Machine: init/stop/loop ----
+  async function init() {
+    const base = ui.modelBaseUrl.value.trim();
+    if (!base) {
+      alert("Teachable Machine 모델 URL을 입력해 주세요.\n예: https://teachablemachine.withgoogle.com/models/XXXXXXX/");
+      return;
     }
 
-    /* =========================
-       THEME: persist in localStorage
-       ========================= */
-    const THEME_KEY = 'dinner_theme';
+    // 모델 파일 URL 구성
+    const normalized = base.endsWith("/") ? base : base + "/";
+    const modelURL = normalized + "model.json";
+    const metadataURL = normalized + "metadata.json";
 
-    function applyTheme(theme){
-      document.documentElement.setAttribute('data-theme', theme);
-      if(theme === 'light'){
-        themeIcon.textContent = '☀️';
-        themeText.textContent = '화이트';
-      }else{
-        themeIcon.textContent = '🌙';
-        themeText.textContent = '다크';
+    ui.btnInit.disabled = true;
+    setStatus("모델 로드 중…");
+
+    try {
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      // tmImage.Webcam은 canvas 기반으로 동작
+      webcam = new tmImage.Webcam(420, 315, true); // width, height, flip
+      await webcam.setup(); // request camera access
+      await webcam.play();
+
+      // Webcam canvas를 DOM에 붙이기 (표준 방식)
+      ui.camWrap.innerHTML = "";
+      webcam.canvas.id = "webcamCanvas";
+      ui.camWrap.appendChild(webcam.canvas);
+
+      // prediction UI 생성
+      ui.labelBox.innerHTML = "";
+      for (let i = 0; i < maxPredictions; i++) {
+        const row = document.createElement("div");
+        row.className = "bar";
+        row.innerHTML = `
+          <div class="k" title=""></div>
+          <div class="meter"><div class="fill"></div></div>
+          <div class="v">0%</div>
+        `;
+        ui.labelBox.appendChild(row);
       }
+
+      ui.btnStop.disabled = false;
+      setStatus("실행 중 (트리거를 인식해보세요)");
+      showScene(0);
+      loop();
+    } catch (e) {
+      console.error(e);
+      alert("모델/웹캠 초기화 실패: " + (e?.message || e));
+      setStatus("실패");
+      ui.btnInit.disabled = false;
     }
+  }
 
-    function getPreferredTheme(){
-      const saved = localStorage.getItem(THEME_KEY);
-      if(saved === 'light' || saved === 'dark') return saved;
-      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-      return prefersLight ? 'light' : 'dark';
-    }
+  function stop() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
 
-    let currentTheme = getPreferredTheme();
-    applyTheme(currentTheme);
+    try { webcam?.stop(); } catch {}
+    model = null;
+    webcam = null;
+    maxPredictions = 0;
 
-    themeBtn.addEventListener('click', () => {
-      currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
-      localStorage.setItem(THEME_KEY, currentTheme);
-      applyTheme(currentTheme);
+    ui.camWrap.innerHTML = "";
+    ui.labelBox.innerHTML = "";
+    ui.btnInit.disabled = false;
+    ui.btnStop.disabled = true;
+    ui.lastTrigger.textContent = "-";
+    setStatus("중지됨");
+    showScene(0);
+  }
+
+  ui.btnInit.addEventListener("click", init);
+  ui.btnStop.addEventListener("click", stop);
+
+  async function loop() {
+    if (!model || !webcam) return;
+    webcam.update();
+    await predict();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  async function predict() {
+    // webcam.canvas를 입력으로 예측
+    const preds = await model.predict(webcam.canvas);
+
+    const rows = ui.labelBox.querySelectorAll(".bar");
+    let best = { className: "", probability: 0 };
+
+    preds.forEach((p, i) => {
+      if (p.probability > best.probability) best = p;
+      const pct = Math.round(p.probability * 100);
+
+      const r = rows[i];
+      if (!r) return;
+      const k = r.querySelector(".k");
+      const fill = r.querySelector(".fill");
+      const v = r.querySelector(".v");
+
+      k.textContent = p.className;
+      k.title = p.className;
+      fill.style.width = pct + "%";
+      v.textContent = pct + "%";
     });
 
-    /* =========================
-       DINNER MENU LOGIC
-       ========================= */
-    const dinnerMenus = [
-      "김치찌개", "된장찌개", "불고기", "제육볶음", "닭볶음탕",
-      "삼겹살", "갈비찜", "순두부찌개", "부대찌개", "비빔밥",
-      "김치볶음밥", "오므라이스", "돈까스", "초밥", "파스타",
-      "피자", "족발", "보쌈", "막국수", "칼국수",
-      "냉면", "회", "떡볶이", "치킨", "찜닭",
-      "아구찜", "해물찜", "곱창", "대창", "닭갈비",
-      "삼계탕", "추어탕", "감자탕", "백반", "샐러드"
-    ];
+    const threshold = parseFloat(ui.threshold.value || "0.85");
+    const cooldown = parseInt(ui.cooldown.value || "900", 10);
+    const now = Date.now();
 
-    function pickDinnerMenu(){
-      const randomIndex = Math.floor(Math.random() * dinnerMenus.length);
-      return dinnerMenus[randomIndex];
+    if (best.probability >= threshold && (now - lastFireAt) >= cooldown) {
+      lastFireAt = now;
+      fireTrigger(best.className, best.probability);
     }
+  }
 
-    function renderMenu(menu){
-      gamesWrap.innerHTML = ''; // Clear previous recommendations
-      
-      const menuItemEl = document.createElement('div');
-      menuItemEl.className = 'menu-item';
-      menuItemEl.textContent = menu;
-      
-      gamesWrap.appendChild(menuItemEl);
+  // ---- Trigger actions ----
+  function fireTrigger(className, prob) {
+    ui.lastTrigger.textContent = `${className} (${Math.round(prob*100)}%)`;
+
+    const action = mapping?.[className];
+    if (!action || typeof action !== "object") return;
+
+    switch (action.type) {
+      case "gotoScene": {
+        const idx = Number(action.scene ?? 0);
+        showScene(idx);
+        break;
+      }
+      case "nextScene": {
+        nextScene();
+        break;
+      }
+      case "sparkle": {
+        sparkle(Number(action.intensity ?? 12));
+        if (typeof action.sticker === "string" && action.sticker.trim()) {
+          sticker(action.sticker.trim());
+        }
+        if (action.next === true) nextScene();
+        break;
+      }
+      case "setText": {
+        const scene = ui.stage.querySelector(`#scene-${currentScene}`);
+        const desc = scene?.querySelector(".desc");
+        if (desc && typeof action.text === "string") desc.textContent = action.text;
+        break;
+      }
+      case "reset": {
+        showScene(0);
+        break;
+      }
+      default:
+        console.warn("Unknown action:", action);
     }
+  }
 
-    async function recommendDinnerMenu(){
-      pickBtn.disabled = true;
+  // Touch/click effect (kids-friendly)
+  ui.stage.addEventListener("pointerdown", () => {
+    sparkle(10);
+    sticker("⭐");
+  });
 
-      const recommendedMenu = pickDinnerMenu();
-      renderMenu(recommendedMenu);
+  // Boot
+  restoreFromUrlIfAny();
+  if (!ui.mapping.value.trim()) loadMappingToTextarea();
+})();
+</script>
 
-      last.textContent = `마지막 추천 시간: ${nowStamp()}`;
-      
-      // Simulate some loading time
-      await new Promise(r => setTimeout(r, 500)); 
-
-      pickBtn.disabled = false;
-    }
-
-    pickBtn.addEventListener('click', recommendDinnerMenu);
-
-    // Initial load: show a random menu
-    recommendDinnerMenu();
-  </script>
-
-
-
-  <script src="disqus.js"></script>
+<!--
+사용 방법
+1) Teachable Machine에서 Image 모델 생성
+2) 라벨(클래스)을 cat / clap / magic 등으로 만들고 학습
+3) Export/Share 링크의 모델 URL을 위 input에 붙여넣기
+4) “웹캠 시작 + 모델 로드” 클릭
+5) mapping JSON을 바꿔 트리거별 반응을 커스터마이즈
+-->
 </body>
 </html>
