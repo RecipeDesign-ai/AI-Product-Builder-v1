@@ -1,687 +1,252 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Creator Toy AI — MVP (Teachable Machine)</title>
-  <style>
-    :root{
-      --bg:#0b1020; --card:#131a33; --text:#e8ecff; --muted:#aab4e6;
-      --line:rgba(255,255,255,.10); --accent:rgba(90,110,255,.65);
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, Noto Sans KR, sans-serif;
-      background: radial-gradient(1200px 600px at 20% 0%, #1b2452 0%, var(--bg) 60%);
-      color:var(--text);
-    }
-    header{
-      padding:18px 16px;
-      border-bottom:1px solid var(--line);
-      position:sticky; top:0;
-      background: rgba(11,16,32,.75);
-      backdrop-filter: blur(10px);
-      z-index: 10;
-    }
-    header .row{
-      display:flex; gap:12px; align-items:center; justify-content:space-between;
-      max-width:1200px; margin:0 auto;
-    }
-    h1{ font-size:16px; margin:0; letter-spacing:.2px; }
-    .pill{
-      font-size:12px; color:var(--muted);
-      padding:6px 10px; border:1px solid var(--line); border-radius:999px;
-    }
-
-    main{
-      max-width:1200px; margin:0 auto; padding:16px;
-      display:grid; grid-template-columns: 420px 1fr; gap:16px;
-    }
-    @media (max-width:980px){ main{ grid-template-columns:1fr; } }
-
-    .card{
-      background: rgba(19,26,51,.85);
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:14px;
-      box-shadow:0 10px 30px rgba(0,0,0,.25);
-    }
-    .card h2{ font-size:14px; margin:0 0 10px; color:#f0f3ff; }
-    .sub{ font-size:12px; color:var(--muted); margin:6px 0 0; line-height:1.5; }
-    label{ font-size:12px; color:var(--muted); display:block; margin:10px 0 6px; }
-    input[type="text"], input[type="number"], textarea{
-      width:100%;
-      padding:10px 10px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.22);
-      color:var(--text);
-      outline:none;
-    }
-    textarea{ min-height:92px; resize:vertical; }
-    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .btns{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-    button{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.06);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-    }
-    button.primary{ background: rgba(90,110,255,.22); border-color: rgba(90,110,255,.35); }
-    button.danger { background: rgba(255,80,80,.15); border-color: rgba(255,80,80,.25); }
-    button:disabled{ opacity:.5; cursor:not-allowed; }
-
-    .rowline{
-      display:flex; gap:10px; align-items:flex-start; justify-content:space-between;
-      border-top:1px dashed var(--line);
-      padding-top:10px; margin-top:10px;
-    }
-    .tiny{ font-size:11px; color:var(--muted); }
-    #status{ margin-top:4px; }
-    #lastTrigger{ margin-top:4px; text-align:right; }
-
-    /* Webcam preview (canvas appended) */
-    .camWrap{
-      margin-top:12px;
-      border-radius:14px;
-      overflow:hidden;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.25);
-      aspect-ratio: 4 / 3;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position: relative;
-    }
-    #webcamCanvas{
-      max-width:100%;
-      max-height:100%;
-      width:auto;
-      height:auto;
-      display:block;
-      transform-origin:center;
-    }
-
-    /* Prediction bars */
-    #labelBox{ margin-top:10px; display:grid; gap:8px; }
-    .bar{
-      display:grid; grid-template-columns: 92px 1fr 44px;
-      gap:10px; align-items:center;
-    }
-    .bar .k{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .meter{
-      height:10px; border-radius:999px;
-      background: rgba(255,255,255,.10);
-      overflow:hidden;
-      border:1px solid var(--line);
-    }
-    .fill{ height:100%; width:0%; background: var(--accent); }
-    .bar .v{ font-size:12px; text-align:right; color: rgba(232,236,255,.9); }
-
-    /* Stage */
-    .stage{
-      position:relative;
-      overflow:hidden;
-      border-radius:18px;
-      border:1px solid var(--line);
-      min-height:560px;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.12));
-    }
-    .scene{
-      position:absolute; inset:0;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      padding:20px; text-align:center;
-      transition: opacity .35s ease, transform .35s ease;
-    }
-    .scene.hidden{ opacity:0; pointer-events:none; transform: scale(.98); }
-    .title{ font-size:28px; margin:0 0 10px; }
-    .desc{ font-size:15px; color: rgba(232,236,255,.86); line-height:1.6; max-width:560px; }
-    .badge{
-      margin-top:12px;
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.18);
-      font-size:12px;
-      color: var(--muted);
-    }
-
-    /* Simple particle / sticker effect (no image assets) */
-    .spark{
-      position:absolute;
-      width:10px; height:10px;
-      border-radius:50%;
-      background: rgba(255,255,255,.92);
-      animation: float 900ms ease-out forwards;
-      pointer-events:none;
-    }
-    @keyframes float{
-      from{ transform: translateY(0) scale(1); opacity:1; }
-      to{ transform: translateY(-80px) scale(0.2); opacity:0; }
-    }
-    .sticker{
-      position:absolute;
-      font-size: 42px;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,.25));
-      animation: pop 650ms ease-out forwards;
-      pointer-events:none;
-    }
-    @keyframes pop{
-      from{ transform: translateY(12px) scale(.75); opacity:0; }
-      to{ transform: translateY(0) scale(1); opacity:1; }
-    }
-
-    .toast{
-      position:fixed; right:16px; bottom:16px;
-      background: rgba(0,0,0,.55);
-      border:1px solid var(--line);
-      padding:10px 12px;
-      border-radius:12px;
-      color: var(--text);
-      font-size:12px;
-      opacity:0;
-      transform: translateY(10px);
-      transition: .25s ease;
-      z-index: 20;
-      max-width: min(520px, calc(100vw - 32px));
-    }
-    .toast.show{ opacity:1; transform: translateY(0); }
-    code.inline{
-      background: rgba(0,0,0,.25);
-      border:1px solid var(--line);
-      padding:2px 6px;
-      border-radius:8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 12px;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Ping | 실행 강제형 알림 서비스</title>
+  <meta name="description" content="오늘 할 일을 입력하면 정해진 시간에 SMS, 이메일, 카카오톡으로 다시 도착하는 실행 강제형 알림 서비스" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="/style.css" rel="stylesheet" />
 </head>
-
 <body>
-<header>
-  <div class="row">
-    <h1>Creator Toy AI — MVP</h1>
-    <div class="pill">Teachable Machine × 인터랙티브 스토리</div>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="#hero">
+        <span class="brand-mark">FP</span>
+        <span>Focus Ping</span>
+      </a>
+      <nav class="topnav">
+        <a href="#problem">차별점</a>
+        <a href="#composer">데모</a>
+        <a href="#loop">작동 방식</a>
+      </nav>
+      <a class="top-cta" href="#composer">바로 써보기</a>
+    </header>
+
+    <main>
+      <section class="hero" id="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Execution-first reminder system</p>
+          <h1>기록만 하는 To-do가 아니라,<br />정해진 시각에 행동을 밀어붙이는 서비스</h1>
+          <p class="hero-text">
+            오늘 할 일을 입력하면 지정한 시간에 SMS, 이메일, 카카오톡으로 다시 도착합니다.
+            사용자가 앱을 열지 않아도 실행 시점에 할 일이 밖으로 튀어나오도록 설계했습니다.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#composer">오늘 할 일 등록</a>
+            <a class="button button-secondary" href="#loop">구조 보기</a>
+          </div>
+          <ul class="hero-metrics">
+            <li>
+              <strong>3채널</strong>
+              <span>SMS · 이메일 · 알림톡</span>
+            </li>
+            <li>
+              <strong>10초</strong>
+              <span>입력부터 예약까지</span>
+            </li>
+            <li>
+              <strong>1클릭</strong>
+              <span>완료 또는 10분 미루기</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="hero-panel">
+          <div class="device-card">
+            <div class="device-head">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+            <div class="message-stack">
+              <article class="message message-kakao">
+                <span class="channel">KAKAO</span>
+                <h3>운동 가기</h3>
+                <p>오후 7:00입니다. 오늘 목표를 지금 실행하세요.</p>
+              </article>
+              <article class="message message-sms">
+                <span class="channel">SMS</span>
+                <p>[Focus Ping] 아직 시작 전입니다. 10분 뒤 다시 보낼까요?</p>
+              </article>
+              <article class="message message-mail">
+                <span class="channel">EMAIL</span>
+                <p>완료 버튼을 누르면 오늘의 실행률이 갱신됩니다.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="problem" id="problem">
+        <div class="section-heading">
+          <p class="eyebrow">Why this product</p>
+          <h2>기존 To-do 앱과 다른 점</h2>
+        </div>
+        <div class="compare-grid">
+          <article class="compare-card muted">
+            <h3>일반 To-do 앱</h3>
+            <ul>
+              <li>사용자가 앱을 다시 열어야 확인함</li>
+              <li>리마인더가 약하고 수동적임</li>
+              <li>완료 전환보다 기록 저장에 초점</li>
+            </ul>
+          </article>
+          <article class="compare-card accent">
+            <h3>Focus Ping</h3>
+            <ul>
+              <li>실행 시점에 메시지가 사용자에게 직접 도착</li>
+              <li>채널 우선순위와 재알림으로 행동을 유도</li>
+              <li>완료, 미루기, 실패 로그까지 수집</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="composer" id="composer">
+        <div class="section-heading compact">
+          <p class="eyebrow">Interactive MVP</p>
+          <h2>웹 데모로 바로 동작 확인</h2>
+        </div>
+
+        <div class="composer-layout">
+          <form class="composer-form" id="taskForm">
+            <label>
+              오늘 할 일
+              <input id="taskTitle" name="title" type="text" placeholder="예: 오후 7시에 운동 가기" maxlength="60" required />
+            </label>
+
+            <label>
+              실행을 밀어붙일 문구
+              <textarea id="taskMessage" name="message" rows="4" placeholder="예: 지금 출발하지 않으면 오늘도 미뤄집니다."></textarea>
+            </label>
+
+            <div class="field-row">
+              <label>
+                알림 시간
+                <input id="taskTime" name="time" type="time" value="19:00" required />
+              </label>
+              <label>
+                재알림
+                <select id="snoozeTime" name="snooze">
+                  <option value="10">10분 뒤</option>
+                  <option value="15">15분 뒤</option>
+                  <option value="30">30분 뒤</option>
+                </select>
+              </label>
+            </div>
+
+            <fieldset>
+              <legend>발송 채널</legend>
+              <div class="channel-pills">
+                <label class="channel-pill selected">
+                  <input type="checkbox" name="channels" value="sms" checked />
+                  <span>SMS</span>
+                </label>
+                <label class="channel-pill selected">
+                  <input type="checkbox" name="channels" value="email" checked />
+                  <span>이메일</span>
+                </label>
+                <label class="channel-pill">
+                  <input type="checkbox" name="channels" value="kakao" />
+                  <span>카카오 알림톡</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <button class="button button-primary block" type="submit">알림 예약 만들기</button>
+          </form>
+
+          <aside class="preview-panel">
+            <div class="preview-card">
+              <div class="preview-head">
+                <p>Live Preview</p>
+                <span id="previewClock">19:00</span>
+              </div>
+              <h3 id="previewTitle">운동 가기</h3>
+              <p id="previewMessage">지금 출발하지 않으면 오늘도 미뤄집니다.</p>
+              <div class="preview-tags" id="previewChannels">
+                <span>SMS</span>
+                <span>이메일</span>
+              </div>
+              <div class="preview-actions">
+                <button type="button" class="action-chip action-chip-primary" id="completePreview">완료 처리</button>
+                <button type="button" class="action-chip" id="snoozePreview">10분 뒤 다시</button>
+              </div>
+            </div>
+
+            <div class="status-card">
+              <p class="status-label">오늘의 실행률</p>
+              <strong id="completionRate">0%</strong>
+              <p class="status-copy">완료 처리된 작업 수를 기준으로 계산됩니다.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="loop" id="loop">
+        <div class="section-heading">
+          <p class="eyebrow">System flow</p>
+          <h2>서비스 작동 구조</h2>
+        </div>
+        <div class="flow-grid">
+          <article>
+            <span>01</span>
+            <h3>Input</h3>
+            <p>사용자가 할 일, 시간, 채널을 입력합니다.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>DB</h3>
+            <p>할 일과 발송 예약 정보가 저장됩니다.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Scheduler</h3>
+            <p>정해진 시간에 맞춰 큐 작업이 생성됩니다.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Notification</h3>
+            <p>SMS, 이메일, 알림톡으로 메시지가 전송됩니다.</p>
+          </article>
+          <article>
+            <span>05</span>
+            <h3>Feedback</h3>
+            <p>완료/미루기 클릭 결과가 다시 시스템에 반영됩니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="dashboard">
+        <div class="section-heading compact">
+          <p class="eyebrow">Task board</p>
+          <h2>오늘 예약된 알림</h2>
+        </div>
+        <div class="task-board" id="taskBoard"></div>
+      </section>
+    </main>
   </div>
-</header>
 
-<main>
-  <!-- Left: Builder / Controls -->
-  <section class="card">
-    <h2>1) 모델 연결</h2>
-
-    <label>Teachable Machine 모델 URL (마지막 슬래시까지 포함)</label>
-    <input id="modelBaseUrl" type="text"
-      placeholder="예) https://teachablemachine.withgoogle.com/models/XXXXXXX/" />
-
-    <div class="grid2">
+  <template id="taskItemTemplate">
+    <article class="task-card">
       <div>
-        <label>예측 임계치(threshold)</label>
-        <input id="threshold" type="number" min="0" max="1" step="0.01" value="0.85" />
+        <p class="task-time"></p>
+        <h3 class="task-title"></h3>
+        <p class="task-note"></p>
       </div>
-      <div>
-        <label>쿨다운(ms) (연속 트리거 방지)</label>
-        <input id="cooldown" type="number" min="0" step="50" value="900" />
+      <div class="task-meta">
+        <div class="task-channels"></div>
+        <div class="task-buttons">
+          <button type="button" class="action-chip complete-btn">완료</button>
+          <button type="button" class="action-chip snooze-btn">미루기</button>
+        </div>
       </div>
-    </div>
+    </article>
+  </template>
 
-    <div class="btns">
-      <button id="btnInit" class="primary">웹캠 시작 + 모델 로드</button>
-      <button id="btnStop" class="danger" disabled>중지</button>
-    </div>
-
-    <p class="sub">
-      ⚠️ 카메라는 브라우저 정책상 <b>HTTPS</b> 또는 <b>localhost</b>에서만 허용됩니다.<br/>
-      (파일을 더블클릭으로 열면 카메라가 차단될 수 있어요)
-    </p>
-
-    <div class="rowline">
-      <div>
-        <div class="tiny">상태</div>
-        <div id="status">대기 중</div>
-      </div>
-      <div>
-        <div class="tiny">마지막 트리거</div>
-        <div id="lastTrigger">-</div>
-      </div>
-    </div>
-
-    <div class="camWrap" id="camWrap">
-      <!-- webcam.canvas 가 여기에 붙습니다 -->
-    </div>
-
-    <div id="labelBox"></div>
-
-    <hr style="border:none;border-top:1px solid var(--line); margin:14px 0;" />
-
-    <h2>2) 스토리 템플릿(반응형)</h2>
-    <p class="sub">
-      모델 라벨(클래스 이름)이 곧 트리거입니다. 예: <code class="inline">cat</code>, <code class="inline">clap</code>, <code class="inline">magic</code>
-    </p>
-
-    <label>트리거 → 액션 매핑(JSON)</label>
-    <textarea id="mapping" spellcheck="false"></textarea>
-
-    <div class="btns">
-      <button id="btnApply" class="primary">매핑 적용</button>
-      <button id="btnReset">기본 매핑</button>
-    </div>
-
-    <h2 style="margin-top:14px;">3) 공유 링크</h2>
-    <div class="btns">
-      <button id="btnShare" class="primary">설정 포함 공유 링크 만들기</button>
-      <button id="btnCopy">링크 복사</button>
-    </div>
-    <p class="sub" id="shareOut" style="word-break: break-all;"></p>
-  </section>
-
-  <!-- Right: Stage -->
-  <section class="card">
-    <h2>Stage (체험 화면)</h2>
-
-    <div class="stage" id="stage">
-      <div class="scene" id="scene-0">
-        <h3 class="title">안녕! 👋</h3>
-        <p class="desc">
-          웹캠을 켜고, 트리거를 인식하면 스토리가 반응해요.<br/>
-          기본 매핑: <code class="inline">cat</code> → 장면1, <code class="inline">magic</code> → 이펙트, <code class="inline">clap</code> → 다음 장면
-        </p>
-        <div class="badge">팁: 라벨을 짧고 단순하게 만들수록 좋아요</div>
-      </div>
-
-      <div class="scene hidden" id="scene-1">
-        <h3 class="title">고양이가 나타났다 🐱</h3>
-        <p class="desc">
-          고양이를 인식했어요! 이제 <code class="inline">magic</code> 트리거로 마법을 발동해보세요.
-        </p>
-        <div class="badge">트리거: <b>cat</b> → 장면 이동</div>
-      </div>
-
-      <div class="scene hidden" id="scene-2">
-        <h3 class="title">마법 발동! ✨</h3>
-        <p class="desc">
-          화면을 클릭/터치해도 이펙트가 나와요. 또는 <code class="inline">clap</code> 트리거로 다음으로!
-        </p>
-        <div class="badge">트리거: <b>magic</b> → 이펙트</div>
-      </div>
-
-      <div class="scene hidden" id="scene-3">
-        <h3 class="title">피날레 🎉</h3>
-        <p class="desc">
-          MVP 완성! 이제 장면/텍스트/스티커를 바꾸면 웹툰·동화·전시 체험으로 확장 가능합니다.
-        </p>
-        <div class="badge">트리거: <b>clap</b> → 장면 이동</div>
-      </div>
-    </div>
-
-    <p class="sub" style="margin-top:10px;">
-      다음 단계 아이디어: (1) 포토부스(스티커 오버레이), (2) 미니게임(점수/타이머), (3) 사운드 모델 병행
-    </p>
-  </section>
-</main>
-
-<div class="toast" id="toast">완료</div>
-
-<!-- Teachable Machine Image library -->
-<script src="https://cdn.jsdelivr.net/npm/ @teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-
-<script>
-(() => {
-  const el = (id) => document.getElementById(id);
-
-  const ui = {
-    modelBaseUrl: el("modelBaseUrl"),
-    threshold: el("threshold"),
-    cooldown: el("cooldown"),
-    btnInit: el("btnInit"),
-    btnStop: el("btnStop"),
-    btnApply: el("btnApply"),
-    btnReset: el("btnReset"),
-    btnShare: el("btnShare"),
-    btnCopy: el("btnCopy"),
-    mapping: el("mapping"),
-    status: el("status"),
-    lastTrigger: el("lastTrigger"),
-    labelBox: el("labelBox"),
-    shareOut: el("shareOut"),
-    toast: el("toast"),
-    camWrap: el("camWrap"),
-    stage: el("stage"),
-  };
-
-  // ---- Default mapping (MVP) ----
-  const DEFAULT_MAPPING = {
-    "cat":   { "type": "gotoScene", "scene": 1 },
-    "magic": { "type": "sparkle", "intensity": 18, "sticker": "✨" },
-    "clap":  { "type": "nextScene" }
-  };
-
-  // ---- Runtime state ----
-  let model = null;
-  let webcam = null;           // tmImage.Webcam instance
-  let maxPredictions = 0;
-  let rafId = null;
-
-  let mapping = structuredClone(DEFAULT_MAPPING);
-  let lastFireAt = 0;
-  let currentScene = 0;
-
-  // ---- UI helpers ----
-  function toast(msg="완료") {
-    ui.toast.textContent = msg;
-    ui.toast.classList.add("show");
-    setTimeout(() => ui.toast.classList.remove("show"), 900);
-  }
-  function setStatus(text) { ui.status.textContent = text; }
-
-  function scenesCount() {
-    return ui.stage.querySelectorAll(".scene").length;
-  }
-  function showScene(index) {
-    const scenes = ui.stage.querySelectorAll(".scene");
-    const clamped = Math.max(0, Math.min(index, scenes.length - 1));
-    scenes.forEach((s, i) => s.classList.toggle("hidden", i !== clamped));
-    currentScene = clamped;
-  }
-  function nextScene() {
-    showScene(currentScene + 1);
-  }
-
-  // ---- Effects (no assets) ----
-  function sparkle(intensity = 12) {
-    const rect = ui.stage.getBoundingClientRect();
-    for (let i=0; i<intensity; i++) {
-      const p = document.createElement("div");
-      p.className = "spark";
-      p.style.left = (Math.random() * rect.width) + "px";
-      p.style.top  = (rect.height * (0.55 + Math.random()*0.25)) + "px";
-      p.style.opacity = (0.5 + Math.random()*0.5).toFixed(2);
-      ui.stage.appendChild(p);
-      setTimeout(() => p.remove(), 950);
-    }
-  }
-
-  function sticker(emoji = "✨") {
-    const rect = ui.stage.getBoundingClientRect();
-    const s = document.createElement("div");
-    s.className = "sticker";
-    s.textContent = emoji;
-    s.style.left = (rect.width * (0.2 + Math.random()*0.6)) + "px";
-    s.style.top  = (rect.height * (0.25 + Math.random()*0.35)) + "px";
-    ui.stage.appendChild(s);
-    setTimeout(() => s.remove(), 900);
-  }
-
-  // ---- Mapping UI ----
-  function loadMappingToTextarea() {
-    ui.mapping.value = JSON.stringify(mapping, null, 2);
-  }
-  function applyMappingFromTextarea() {
-    try {
-      const obj = JSON.parse(ui.mapping.value);
-      if (!obj || typeof obj !== "object") throw new Error("JSON 객체가 아닙니다.");
-      mapping = obj;
-      toast("매핑 적용됨");
-    } catch (e) {
-      alert("매핑 JSON 파싱 실패: " + e.message);
-    }
-  }
-  ui.btnApply.addEventListener("click", applyMappingFromTextarea);
-  ui.btnReset.addEventListener("click", () => {
-    mapping = structuredClone(DEFAULT_MAPPING);
-    loadMappingToTextarea();
-    toast("기본 매핑 복원");
-  });
-
-  // ---- Share / Restore (cfg param) ----
-  function encodeConfig(cfg) {
-    // Unicode-safe base64
-    const json = JSON.stringify(cfg);
-    const bytes = new TextEncoder().encode(json);
-    let bin = "";
-    bytes.forEach(b => bin += String.fromCharCode(b));
-    return btoa(bin);
-  }
-  function decodeConfig(b64) {
-    const bin = atob(b64);
-    const bytes = new Uint8Array([...bin].map(ch => ch.charCodeAt(0)));
-    const json = new TextDecoder().decode(bytes);
-    return JSON.parse(json);
-  }
-
-  function buildShareLink() {
-    const cfg = {
-      modelBaseUrl: ui.modelBaseUrl.value.trim(),
-      threshold: parseFloat(ui.threshold.value || "0.85"),
-      cooldown: parseInt(ui.cooldown.value || "900", 10),
-      mapping
-    };
-    const packed = encodeConfig(cfg);
-    const url = new URL(window.location.href);
-    url.searchParams.set("cfg", packed);
-    return url.toString();
-  }
-
-  ui.btnShare.addEventListener("click", () => {
-    const link = buildShareLink();
-    ui.shareOut.textContent = link;
-    toast("링크 생성됨");
-  });
-
-  ui.btnCopy.addEventListener("click", async () => {
-    const link = ui.shareOut.textContent || buildShareLink();
-    try {
-      await navigator.clipboard.writeText(link);
-      ui.shareOut.textContent = link;
-      toast("복사됨");
-    } catch {
-      prompt("자동 복사 실패. 아래 링크를 수동 복사하세요.", link);
-    }
-  });
-
-  function restoreFromUrlIfAny() {
-    const url = new URL(window.location.href);
-    const cfgB64 = url.searchParams.get("cfg");
-    if (!cfgB64) {
-      mapping = structuredClone(DEFAULT_MAPPING);
-      loadMappingToTextarea();
-      return;
-    }
-    try {
-      const cfg = decodeConfig(cfgB64);
-      if (cfg.modelBaseUrl) ui.modelBaseUrl.value = cfg.modelBaseUrl;
-      if (typeof cfg.threshold === "number") ui.threshold.value = String(cfg.threshold);
-      if (typeof cfg.cooldown === "number") ui.cooldown.value = String(cfg.cooldown);
-      if (cfg.mapping && typeof cfg.mapping === "object") mapping = cfg.mapping;
-      loadMappingToTextarea();
-      ui.shareOut.textContent = window.location.href;
-      toast("설정 복원됨");
-    } catch (e) {
-      console.warn(e);
-      mapping = structuredClone(DEFAULT_MAPPING);
-      loadMappingToTextarea();
-    }
-  }
-
-  // ---- Teachable Machine: init/stop/loop ----
-  async function init() {
-    const base = ui.modelBaseUrl.value.trim();
-    if (!base) {
-      alert("Teachable Machine 모델 URL을 입력해 주세요.\n예: https://teachablemachine.withgoogle.com/models/XXXXXXX/");
-      return;
-    }
-
-    // 모델 파일 URL 구성
-    const normalized = base.endsWith("/") ? base : base + "/";
-    const modelURL = normalized + "model.json";
-    const metadataURL = normalized + "metadata.json";
-
-    ui.btnInit.disabled = true;
-    setStatus("모델 로드 중…");
-
-    try {
-      model = await tmImage.load(modelURL, metadataURL);
-      maxPredictions = model.getTotalClasses();
-
-      // tmImage.Webcam은 canvas 기반으로 동작
-      webcam = new tmImage.Webcam(420, 315, true); // width, height, flip
-      await webcam.setup(); // request camera access
-      await webcam.play();
-
-      // Webcam canvas를 DOM에 붙이기 (표준 방식)
-      ui.camWrap.innerHTML = "";
-      webcam.canvas.id = "webcamCanvas";
-      ui.camWrap.appendChild(webcam.canvas);
-
-      // prediction UI 생성
-      ui.labelBox.innerHTML = "";
-      for (let i = 0; i < maxPredictions; i++) {
-        const row = document.createElement("div");
-        row.className = "bar";
-        row.innerHTML = `
-          <div class="k" title=""></div>
-          <div class="meter"><div class="fill"></div></div>
-          <div class="v">0%</div>
-        `;
-        ui.labelBox.appendChild(row);
-      }
-
-      ui.btnStop.disabled = false;
-      setStatus("실행 중 (트리거를 인식해보세요)");
-      showScene(0);
-      loop();
-    } catch (e) {
-      console.error(e);
-      alert("모델/웹캠 초기화 실패: " + (e?.message || e));
-      setStatus("실패");
-      ui.btnInit.disabled = false;
-    }
-  }
-
-  function stop() {
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = null;
-
-    try { webcam?.stop(); } catch {}
-    model = null;
-    webcam = null;
-    maxPredictions = 0;
-
-    ui.camWrap.innerHTML = "";
-    ui.labelBox.innerHTML = "";
-    ui.btnInit.disabled = false;
-    ui.btnStop.disabled = true;
-    ui.lastTrigger.textContent = "-";
-    setStatus("중지됨");
-    showScene(0);
-  }
-
-  ui.btnInit.addEventListener("click", init);
-  ui.btnStop.addEventListener("click", stop);
-
-  async function loop() {
-    if (!model || !webcam) return;
-    webcam.update();
-    await predict();
-    rafId = requestAnimationFrame(loop);
-  }
-
-  async function predict() {
-    // webcam.canvas를 입력으로 예측
-    const preds = await model.predict(webcam.canvas);
-
-    const rows = ui.labelBox.querySelectorAll(".bar");
-    let best = { className: "", probability: 0 };
-
-    preds.forEach((p, i) => {
-      if (p.probability > best.probability) best = p;
-      const pct = Math.round(p.probability * 100);
-
-      const r = rows[i];
-      if (!r) return;
-      const k = r.querySelector(".k");
-      const fill = r.querySelector(".fill");
-      const v = r.querySelector(".v");
-
-      k.textContent = p.className;
-      k.title = p.className;
-      fill.style.width = pct + "%";
-      v.textContent = pct + "%";
-    });
-
-    const threshold = parseFloat(ui.threshold.value || "0.85");
-    const cooldown = parseInt(ui.cooldown.value || "900", 10);
-    const now = Date.now();
-
-    if (best.probability >= threshold && (now - lastFireAt) >= cooldown) {
-      lastFireAt = now;
-      fireTrigger(best.className, best.probability);
-    }
-  }
-
-  // ---- Trigger actions ----
-  function fireTrigger(className, prob) {
-    ui.lastTrigger.textContent = `${className} (${Math.round(prob*100)}%)`;
-
-    const action = mapping?.[className];
-    if (!action || typeof action !== "object") return;
-
-    switch (action.type) {
-      case "gotoScene": {
-        const idx = Number(action.scene ?? 0);
-        showScene(idx);
-        break;
-      }
-      case "nextScene": {
-        nextScene();
-        break;
-      }
-      case "sparkle": {
-        sparkle(Number(action.intensity ?? 12));
-        if (typeof action.sticker === "string" && action.sticker.trim()) {
-          sticker(action.sticker.trim());
-        }
-        if (action.next === true) nextScene();
-        break;
-      }
-      case "setText": {
-        const scene = ui.stage.querySelector(`#scene-${currentScene}`);
-        const desc = scene?.querySelector(".desc");
-        if (desc && typeof action.text === "string") desc.textContent = action.text;
-        break;
-      }
-      case "reset": {
-        showScene(0);
-        break;
-      }
-      default:
-        console.warn("Unknown action:", action);
-    }
-  }
-
-  // Touch/click effect (kids-friendly)
-  ui.stage.addEventListener("pointerdown", () => {
-    sparkle(10);
-    sticker("⭐");
-  });
-
-  // Boot
-  restoreFromUrlIfAny();
-  if (!ui.mapping.value.trim()) loadMappingToTextarea();
-})();
-</script>
-
-<!--
-사용 방법
-1) Teachable Machine에서 Image 모델 생성
-2) 라벨(클래스)을 cat / clap / magic 등으로 만들고 학습
-3) Export/Share 링크의 모델 URL을 위 input에 붙여넣기
-4) “웹캠 시작 + 모델 로드” 클릭
-5) mapping JSON을 바꿔 트리거별 반응을 커스터마이즈
--->
+  <script defer type="text/javascript" src="/main.js"></script>
 </body>
 </html>
